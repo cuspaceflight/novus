@@ -27,8 +27,8 @@ noz_cone_angle = 15     # nozzle exit cone angle (degrees)
 temp = 5 + ZERO_C       # initial tank temperature
 fuelden = 935           # solid fuel density
 Dfeed = 0.023           # minimum feed system orifice diameter
-reg_coeff = 'blank'     # regression rate coeff (usually 'a' in textbooks)
-reg_exp = 'blank'       # regression rate exponent (usually 'n' in textbooks)
+reg_coeff = 4.88e-4     # regression rate coeff (usually 'a' in textbooks)
+reg_exp = 0.28          # regression rate exponent (usually 'n' in textbooks)
 external_pres = 101325  # external atmospheric pressure
 dt = 0.001              # time step
 
@@ -72,8 +72,8 @@ def main():
         notransient = True
         Impulse = 0
         (timelist, vpreslist, cpreslist, Thrustlist,
-        Isplist, Goxlist, Dportlist, manifoldpreslist) = ([], [], [], [],
-                                                        [], [], [], [])
+         Isplist, Goxlist, Dportlist, manifoldpreslist) = ([], [], [], [],
+                                                           [], [], [], [])
         lden, vden, hv, c, vpres = thermophys(temp)
         ilmass = Vtank * (1 - head) * lden
         lmass = ilmass
@@ -103,16 +103,18 @@ def main():
             lden, vden, hv, c, vpres = thermophys(temp)
 
             # calculate injector pressure drop
-            feed_pdrop = (0.5 * lden * pow(mdotox / (lden * A_from_D(Dfeed)), 2))
+            feed_pdrop = (0.5 * lden *
+                          pow(mdotox / (lden * A_from_D(Dfeed)), 2))
             manifoldpres = vpres - feed_pdrop
             inj_pdrop = manifoldpres - cpres
 
             if inj_pdrop < 0 and time > 0.5:
-                print('Motor exploded ;_; Reverse flow occurred at t=', time, 's')
+                print('Motor exploded ;_; Reverse flow'
+                      'occurred at t=', time, 's')
                 break
             if inj_pdrop < 0 and time < 0.5:
                 print('Warning! Chamber pressure exceeded '
-                    'tank pressure during ignition.')
+                      'tank pressure during ignition.')
                 inj_pdrop = 0
                 notransient = False
             if (inj_pdrop / cpres) < 0.2 and nopulse and time > 0.5:
@@ -121,7 +123,7 @@ def main():
 
             # injector flow-rate calculation
             nmdotox = pow(2 * lden * inj_pdrop /
-                        (K / pow(Ninj * A_from_D(Dinj), 2)), 0.5)
+                          (K / pow(Ninj * A_from_D(Dinj), 2)), 0.5)
             mdotox = (mdotox + (3 * nmdotox)) / 4
 
             # nitrous vaporization calculations
@@ -157,7 +159,8 @@ def main():
 
             # lookup ratio of specific heats from propep data file
             if cpres > 90E5 or cpres < 0:
-                raise RuntimeError('chamber pressure out of propep data range!')
+                raise RuntimeError('chamber pressure out'
+                                   'of propep data range!')
 
             rounded_cpres = int(5 * round((cpres * 1e-5) / 5))
             cpres_line = int(765 * (((100 - rounded_cpres) / 5) - 1) + 9)
@@ -184,29 +187,29 @@ def main():
             manifoldpreslist.append(manifoldpres)
             Thrustlist.append(Thrust)
             Isplist.append(Isp)
-            Goxlist.append(mdotox / (((Dport/2)**2)*np.pi))
+            Goxlist.append(mdotox / A_from_D(Dport))
             Dportlist.append(Dport)
 
         # print final results
         print("\nFinal conditions:\ntime:", time,
-            "s\ntemp:", temp - ZERO_C,
-            "C\nlmass:", lmass,
-            "kg\nvmass:", vmass,
-            "kg\nvpres:", vpres,
-            'Pa\nfuel thickness:', (Dfuel - Dport)/2,
-            'm\nfuel mass', fuelmass, 'kg')
+              "s\ntemp:", temp - ZERO_C,
+              "C\nlmass:", lmass,
+              "kg\nvmass:", vmass,
+              "kg\nvpres:", vpres,
+              'Pa\nfuel thickness:', (Dfuel - Dport) / 2,
+              'm\nfuel mass', fuelmass, 'kg')
 
         print('\nPerformance results:\nmean thrust:', np.mean(Thrustlist),
-            'N\nimpulse:', Impulse,
-            'Ns\nmean Isp:', np.mean(Isplist),
-            's\noxidizer burnt:', ilmass - (vmass - ivmass),
-            'kg\nfuel burnt', ifuelmass - fuelmass, 'kg')
+              'N\nimpulse:', Impulse,
+              'Ns\nmean Isp:', np.mean(Isplist),
+              's\noxidizer burnt:', ilmass - (vmass - ivmass),
+              'kg\nfuel burnt', ifuelmass - fuelmass, 'kg')
 
-        print('\ntrajectory sim input:\nithrust =', Thrustlist[int(0.5/dt)],
-            '\nthrustgrad =', (Thrustlist[int(0.5 / dt)] - Thrust)/time,
-            '\nburntime =', time,
-            '\npropmass =', (ilmass - (vmass - ivmass))+(ifuelmass - fuelmass),
-            '\nvapmass =', vmass)
+        print('\ntrajectory sim input:\nithrust =', Thrustlist[int(0.5 / dt)],
+              '\nthrustgrad =', (Thrustlist[int(0.5 / dt)] - Thrust) / time,
+              '\nburntime =', time,
+              '\npropmass =', (ilmass - (vmass-ivmass)) + (ifuelmass-fuelmass),
+              '\nvapmass =', vmass)
 
         # plot pressures
         plt.figure(figsize=(8.5, 7))
@@ -214,9 +217,9 @@ def main():
         plt.plot(timelist, vpreslist, 'b', label='Tank pressure')
         plt.plot(timelist, cpreslist, 'r', label='Chamber pressure')
         plt.plot(timelist, manifoldpreslist, 'g',
-                label='Injector manifold pressure')
+                 label='Injector manifold pressure')
         plt.ylabel('Pressure (Pa)')
-        plt.ylim(0, max(vpreslist)*1.3)
+        plt.ylim(0, 1.3 * max(vpreslist))
         plt.xlabel('Time (s)')
         plt.ylabel('Pressure (Pa)')
         plt.legend()
@@ -227,7 +230,7 @@ def main():
         plt.plot(timelist, Thrustlist)
         plt.xlabel('Time (s)')
         plt.ylabel('Thrust (N)')
-        plt.ylim(0, max(Thrustlist)*1.3)
+        plt.ylim(0, 1.3 * max(Thrustlist))
         plt.tight_layout()
 
         # plot massflux
@@ -235,7 +238,7 @@ def main():
         plt.plot(timelist, Goxlist, 'y')
         plt.xlabel('Time (s)')
         plt.ylabel('Oxidizer mass flux ($kg s^{-1} m^{-2}$)')
-        plt.ylim(0, max(Goxlist)*1.3)
+        plt.ylim(0, 1.3 * max(Goxlist))
         plt.tight_layout()
 
         # plot port diameter
@@ -243,10 +246,11 @@ def main():
         plt.plot(timelist, Dportlist, 'g')
         plt.xlabel('Time (s)')
         plt.ylabel('Port Diameter (m)')
-        plt.ylim(0, max(Dportlist)*1.3)
+        plt.ylim(0, 1.3 * max(Dportlist))
         plt.tight_layout()
 
         plt.show()
+
 
 if __name__ == "__main__":
     main()
