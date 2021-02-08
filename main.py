@@ -40,6 +40,10 @@ def A_from_D(D):
 
 def main():
     """Run simulation."""
+    global Vtank, head, Ninj, Dinj, Dport, Dfuel, Lport
+    global Dthroat, noz_cone_angle, temp, fuelden, Dfeed
+    global reg_coeff, reg_exp, external_pres, dt
+
     with open('L_Nitrous_S_HDPE.propep', 'r') as propep:
         # stream propep data file
         propep_data = propep.readlines()
@@ -81,12 +85,12 @@ def main():
         cpres = external_pres
 
         print("Initial conditions:\ntime:", time,
-            "s\ntemp:", temp - ZERO_C,
-            "C\nlmass:", lmass,
-            "kg\nvmass:", vmass,
-            "kg\nvpres:", vpres,
-            'Pa\nfuel thickness:', (Dfuel - Dport) / 2,
-            'm\nfuel mass', fuelmass, 'kg\n')
+              "s\ntemp:", temp - ZERO_C,
+              "C\nlmass:", lmass,
+              "kg\nvmass:", vmass,
+              "kg\nvpres:", vpres,
+              'Pa\nfuel thickness:', (Dfuel - Dport) / 2,
+              'm\nfuel mass', fuelmass, 'kg\n')
 
         # sim loop
         while lmass > 0 and Dport < Dfuel:
@@ -163,12 +167,12 @@ def main():
 
             # performance calculations
             Cf = pow(γ
-                    * pow(2 / (γ + 1), (γ + 1) / (γ - 1))
-                    * (2 * γ) / (γ - 1)
-                    * (1 - pow(external_pres / cpres, (γ - 1) / γ)), 0.5)
+                     * pow(2 / (γ + 1), (γ + 1) / (γ - 1))
+                     * (2 * γ) / (γ - 1)
+                     * (1 - pow(external_pres / cpres, (γ - 1) / γ)), 0.5)
 
             Thrust = (A_from_D(Dthroat) * cpres * Cf *
-                    0.5 * (1 + np.cos(2 * np.pi * noz_cone_angle / 360)))
+                      0.5 * (1 + np.cos(2 * np.pi * noz_cone_angle / 360)))
 
             Isp = Thrust / ((mdotox + mdotfuel) * 9.81)
             Impulse = Impulse + (Thrust * dt)
