@@ -52,8 +52,8 @@ def thermophys(temp):
                           - 14.51800 * pow(T0_INV, 3))
 
     vpres = 7251000 * np.exp(T0_RECIP * (- 6.71893 * T0_INV
-                                        + 1.35966 * pow(T0_INV, 3/2)
-                                        - 1.37790 * pow(T0_INV, 5/2)
-                                        - 4.05100 * pow(T0_INV, 5)))
+                                         + 1.35966 * pow(T0_INV, 3/2)
+                                         - 1.37790 * pow(T0_INV, 5/2)
+                                         - 4.05100 * pow(T0_INV, 5)))
 
     return lden, vden, hv, c, vpres
