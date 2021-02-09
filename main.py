@@ -46,6 +46,19 @@ def main():
     global Dthroat, noz_cone_angle, temp, fuelden, Dfeed
     global reg_coeff, reg_exp, external_pres, dt
 
+    print("""
+            +-------------------------+
+            | HYBRID MOTOR SIMULATION |
+            +-------------------------+
+            |  CAMBRIDGE  UNIVERSITY  |
+            |       SPACEFLIGHT       |
+            +-------------------------+
+
+                  COPYRIGHT  (C)
+                   2017 J. HUNT
+                  2020 H. FRANKS
+        """)
+
     with open('L_Nitrous_S_HDPE.propep', 'r') as propep:
         # stream propep data file
         propep_data = propep.readlines()
@@ -86,13 +99,17 @@ def main():
         tmass = lmass + vmass
         cpres = external_pres
 
-        print("Initial conditions:\ntime:", time,
-              "s\ntemp:", temp - ZERO_C,
-              "C\nlmass:", lmass,
-              "kg\nvmass:", vmass,
-              "kg\nvpres:", vpres,
-              'Pa\nfuel thickness:', (Dfuel - Dport) / 2,
-              'm\nfuel mass', fuelmass, 'kg\n')
+        print(f"""
+            Initial Conditions
+            ==================
+            time:           {time:.2f} s
+            temp:           {temp - ZERO_C:.2f} C
+            lmass:          {lmass:.2f} kg
+            vmass:          {vmass:.2f} kg
+            vpres:          {vpres:.2f} Pa
+            fuel thickness: {(Dfuel - Dport) / 2:.2f} m
+            fuel mass:      {fuelmass:.2f} kg
+            """)
 
         # sim loop
         while lmass > 0 and Dport < Dfuel:
@@ -111,7 +128,7 @@ def main():
             inj_pdrop = manifoldpres - cpres
 
             if inj_pdrop < 0 and time > 0.5:
-                print('Motor exploded ;_; Reverse flow'
+                print('Motor exploded ;_; Reverse flow '
                       'occurred at t=', time, 's')
                 break
             if inj_pdrop < 0 and time < 0.5:
@@ -193,25 +210,37 @@ def main():
             Dportlist.append(Dport)
 
         # print final results
-        print("\nFinal conditions:\ntime:", time,
-              "s\ntemp:", temp - ZERO_C,
-              "C\nlmass:", lmass,
-              "kg\nvmass:", vmass,
-              "kg\nvpres:", vpres,
-              'Pa\nfuel thickness:', (Dfuel - Dport) / 2,
-              'm\nfuel mass', fuelmass, 'kg')
+        print(f"""
+            Final Conditions
+            =================
+            time:           {time:.2f} s
+            temp:           {temp - ZERO_C:.2f} C
+            lmass:          {lmass:.2f} kg
+            vmass:          {vmass:.2f} kg
+            vpres:          {vpres:.2f} Pa
+            fuel thickness: {(Dfuel - Dport) / 2:.2f} m
+            fuel mass:      {fuelmass:.2f} kg
+            """)
 
-        print('\nPerformance results:\nmean thrust:', np.mean(Thrustlist),
-              'N\nimpulse:', Impulse,
-              'Ns\nmean Isp:', np.mean(Isplist),
-              's\noxidizer burnt:', ilmass - (vmass - ivmass),
-              'kg\nfuel burnt', ifuelmass - fuelmass, 'kg')
+        print(f"""
+            Performance Results
+            ====================
+            mean thrust:    {np.mean(Thrustlist):.2f} N
+            impulse:        {Impulse:.2f} Ns
+            mean Isp:       {np.mean(Isplist):.2f} s
+            oxidizer burnt: {ilmass - (vmass - ivmass):.2f} kg
+            fuel burnt:     {ifuelmass - fuelmass:.2f} kg
+            """)
 
-        print('\ntrajectory sim input:\nithrust =', Thrustlist[int(0.5 / dt)],
-              '\nthrustgrad =', (Thrustlist[int(0.5 / dt)] - Thrust) / time,
-              '\nburntime =', time,
-              '\npropmass =', (ilmass - (vmass-ivmass)) + (ifuelmass-fuelmass),
-              '\nvapmass =', vmass)
+        print(f"""
+            Trajectory Sim Input
+            ====================
+            ithrust:    {Thrustlist[int(0.5 / dt)]:.2f}
+            thrustgrad: {(Thrustlist[int(0.5 / dt)] - Thrust) / time:.2f}
+            burntime:   {time:.2f}
+            propmass:   {ilmass - (vmass - ivmass) + (ifuelmass-fuelmass):.2f}
+            vapmass:    {vmass:.2f}
+            """)
 
         # plot pressures
         plt.figure(figsize=(8.5, 7))
