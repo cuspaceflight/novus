@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 from n2o_esdu import thermophys
 
 
+plt.style.use('dracula')
+
 ZERO_C = 273.15
 
 # inputs
@@ -214,9 +216,9 @@ def main():
         # plot pressures
         plt.figure(figsize=(8.5, 7))
         plt.subplot(221)
-        plt.plot(timelist, vpreslist, 'b', label='Tank pressure')
-        plt.plot(timelist, cpreslist, 'r', label='Chamber pressure')
-        plt.plot(timelist, manifoldpreslist, 'g',
+        plt.plot(timelist, vpreslist, 'C0', label='Tank pressure')
+        plt.plot(timelist, cpreslist, 'C5', label='Chamber pressure')
+        plt.plot(timelist, manifoldpreslist, 'C2',
                  label='Injector manifold pressure')
         plt.ylabel('Pressure (Pa)')
         plt.ylim(0, 1.3 * max(vpreslist))
@@ -235,7 +237,7 @@ def main():
 
         # plot massflux
         plt.subplot(223)
-        plt.plot(timelist, Goxlist, 'y')
+        plt.plot(timelist, Goxlist, 'C6')
         plt.xlabel('Time (s)')
         plt.ylabel('Oxidizer mass flux ($kg s^{-1} m^{-2}$)')
         plt.ylim(0, 1.3 * max(Goxlist))
@@ -243,7 +245,7 @@ def main():
 
         # plot port diameter
         plt.subplot(224)
-        plt.plot(timelist, Dportlist, 'g')
+        plt.plot(timelist, Dportlist, 'C2')
         plt.xlabel('Time (s)')
         plt.ylabel('Port Diameter (m)')
         plt.ylim(0, 1.3 * max(Dportlist))
