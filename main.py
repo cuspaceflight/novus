@@ -114,16 +114,17 @@ def main():
         # sim loop
         while lmass > 0 and Dport < Dfuel:
             time += dt
+            temp -= (vapzl * hv) / (lmass * c)
 
             # update nitrous thermophysical properties if temperature in range
-            temp -= (vapzl * hv) / (lmass * c)
             if not (183.15 <= temp <= 309.57):
                 raise RuntimeError('temperature left data range')
+
             lden, vden, hv, c, vpres = thermophys(temp)
 
             # calculate injector pressure drop
             feed_pdrop = (0.5 * lden *
-                          pow(mdotox / (lden * A_from_D(Dfeed)), 2))
+                          pow(mdotox / lden / A_from_D(Dfeed), 2))
             manifoldpres = vpres - feed_pdrop
             inj_pdrop = manifoldpres - cpres
 
@@ -131,31 +132,34 @@ def main():
                 print('Motor exploded ;_; Reverse flow '
                       'occurred at t=', time, 's')
                 break
+
             if inj_pdrop < 0 and time < 0.5:
                 print('Warning! Chamber pressure exceeded '
                       'tank pressure during ignition.')
                 inj_pdrop = 0
                 notransient = False
+
             if (inj_pdrop / cpres) < 0.2 and nopulse and time > 0.5:
-                print("PULSE began at T=", time, "s")
+                print(f"PULSE began at T={time} s")
                 nopulse = False
 
             # injector flow-rate calculation
-            nmdotox = pow(2 * lden * inj_pdrop /
-                          (K / pow(Ninj * A_from_D(Dinj), 2)), 0.5)
-            mdotox = (mdotox + (3 * nmdotox)) / 4
+            nmdotox = np.sqrt(2 * lden * inj_pdrop /
+                              (K / pow(Ninj * A_from_D(Dinj), 2)))
+            mdotox += 3 * nmdotox
+            mdotox /= 4
 
             # nitrous vaporization calculations
-            tmass = tmass - (mdotox * dt)
-            lmass_pre_vap = lmass - (mdotox * dt)
-            lmass = (Vtank - (tmass / vden)) / ((1 / lden) - (1 / vden))
+            tmass -= mdotox * dt
+            lmass_pre_vap = lmass - mdotox * dt
+            lmass = (Vtank - tmass / vden) / ((1 / lden) - (1 / vden))
 
             if (lmass_pre_vap < lmass):
                 print('loop exited early due to numerical instability')
                 break
 
             vapz = lmass_pre_vap - lmass
-            vapzl = (dt / 0.15) * (vapz - vapzl) + vapzl
+            vapzl += (vapz - vapzl) * dt / 0.15
             vmass = tmass - lmass
 
             # fuel port calculations
@@ -165,20 +169,20 @@ def main():
 
             rdot = reg_coeff * pow(mdotox / A_from_D(Dport), reg_exp)
 
-            mdotfuel = rdot * fuelden * (np.pi * Dport * Lport)
-            OF = mdotox/mdotfuel
+            mdotfuel = rdot * fuelden * np.pi * Dport * Lport
+            OF = mdotox / mdotfuel
 
             if not (1/39 <= OF <= 39):
                 raise ValueError('OF out of propep data range!')
 
-            Cstar = np.interp((OF / (OF + 1)) * 100, OFdat2, Cstardat2)
+            Cstar = np.interp(100 * OF / (OF + 1), OFdat2, Cstardat2)
             cpres = (mdotox + mdotfuel) * Cstar / A_from_D(Dthroat)
             Dport += 2 * rdot * dt
-            fuelmass = (A_from_D(Dfuel) - A_from_D(Dport)) * Lport * fuelden
+            fuelmass = Lport * fuelden * (A_from_D(Dfuel) - A_from_D(Dport))
 
             # lookup ratio of specific heats from propep data file
-            if cpres > 90E5 or cpres < 0:
-                raise RuntimeError('chamber pressure out'
+            if not 0 <= cpres <= 90e5:
+                raise RuntimeError('chamber pressure out '
                                    'of propep data range!')
 
             rounded_cpres = int(5 * round((cpres * 1e-5) / 5))
@@ -188,10 +192,9 @@ def main():
             γ = float(propep_data[cpres_line + oxpct_line - 1].split()[1])
 
             # performance calculations
-            Cf = pow(γ
-                     * pow(2 / (γ + 1), (γ + 1) / (γ - 1))
-                     * (2 * γ) / (γ - 1)
-                     * (1 - pow(external_pres / cpres, (γ - 1) / γ)), 0.5)
+            Cf = np.sqrt(γ * pow(2 / (γ + 1), (γ + 1) / (γ - 1))
+                           * (2 * γ) / (γ - 1)
+                           * (1 - pow(external_pres / cpres, (γ - 1) / γ)))
 
             Thrust = (A_from_D(Dthroat) * cpres * Cf *
                       0.5 * (1 + np.cos(2 * np.pi * noz_cone_angle / 360)))
@@ -247,8 +250,8 @@ def main():
         plt.subplot(221)
         plt.plot(timelist, vpreslist, 'C0', label='Tank pressure')
         plt.plot(timelist, cpreslist, 'C5', label='Chamber pressure')
-        plt.plot(timelist, manifoldpreslist, 'C2',
-                 label='Injector manifold pressure')
+        plt.plot(timelist, manifoldpreslist, 'C2', label='Injector manifold '
+                                                         'pressure')
         plt.ylabel('Pressure (Pa)')
         plt.ylim(0, 1.3 * max(vpreslist))
         plt.xlabel('Time (s)')
