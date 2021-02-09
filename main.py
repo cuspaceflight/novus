@@ -130,7 +130,7 @@ def main():
 
             if inj_pdrop < 0 and time > 0.5:
                 print('Motor exploded ;_; Reverse flow '
-                      'occurred at t=', time, 's')
+                      f'occurred at t={time} s')
                 break
 
             if inj_pdrop < 0 and time < 0.5:
@@ -185,7 +185,7 @@ def main():
                 raise RuntimeError('chamber pressure out '
                                    'of propep data range!')
 
-            rounded_cpres = int(5 * round((cpres * 1e-5) / 5))
+            rounded_cpres = int(5 * round(cpres / 5e5))
             cpres_line = int(765 * (((100 - rounded_cpres) / 5) - 1) + 9)
             rounded_oxpct = round(2 * (OF / (1 + OF)) * 100) / 2
             oxpct_line = int((4 * (97.5 - rounded_oxpct) / 0.5) + 3)
@@ -196,10 +196,10 @@ def main():
                            * (2 * γ) / (γ - 1)
                            * (1 - pow(external_pres / cpres, (γ - 1) / γ)))
 
-            Thrust = (A_from_D(Dthroat) * cpres * Cf *
-                      0.5 * (1 + np.cos(2 * np.pi * noz_cone_angle / 360)))
+            Thrust = (A_from_D(Dthroat) * cpres * Cf * 0.5 *
+                      (1 + np.cos(np.pi * noz_cone_angle / 180)))
 
-            Isp = Thrust / ((mdotox + mdotfuel) * 9.81)
+            Isp = Thrust / (mdotox + mdotfuel) / 9.81
             Impulse = Impulse + (Thrust * dt)
 
             # add current state to plot lists
@@ -241,7 +241,7 @@ def main():
             ithrust:    {Thrustlist[int(0.5 / dt)]:.2f}
             thrustgrad: {(Thrustlist[int(0.5 / dt)] - Thrust) / time:.2f}
             burntime:   {time:.2f}
-            propmass:   {ilmass - (vmass - ivmass) + (ifuelmass-fuelmass):.2f}
+            propmass:   {ilmass - (vmass - ivmass) + ifuelmass - fuelmass:.2f}
             vapmass:    {vmass:.2f}
             """)
 
