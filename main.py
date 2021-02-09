@@ -11,8 +11,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from n2o_esdu import thermophys
 
-
-plt.style.use('dracula')
+if 'dracula' in plt.style.available:
+    plt.style.use('dracula')
 
 ZERO_C = 273.15
 
