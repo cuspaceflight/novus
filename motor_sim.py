@@ -31,57 +31,61 @@ import hybrid_functions as motor
 # Input parameters
 ###############################################################################
 
-VOL_TANK = 60*0.001           #tank volume (m^3)
-HEAD_SPACE = 0.1              #initial vapour phase proportion
+VOL_TANK = 60*0.001           # tank volume (m^3)
+HEAD_SPACE = 0.1              # initial vapour phase proportion
 
 # primary injectory orifices were drilled by shaped machining
-NUM_INJ1 = 40                 #number of primary injector orifices
-DIA_INJ1 = 0.0013             #diameter of primary injector orifices (m)
+NUM_INJ1 = 40                 # number of primary injector orifices
+DIA_INJ1 = 0.0013             # diameter of primary injector orifices (m)
 
 # secondary injector orifices were drilled prior to first test
-NUM_INJ2 = 4                  #number of secondary injector orifices
-DIA_INJ2 = 0.002              #diameter of secondary injector orifices (m)
+NUM_INJ2 = 4                  # number of secondary injector orifices
+DIA_INJ2 = 0.002              # diameter of secondary injector orifices (m)
 
 # tertiary injectory orifices are new orifices to be drilled
 NUM_INJ3 = 8                  # number of tertiary injector orifices
-DIA_INJ3 = 0.0015             #diameter of tertiary injector orifices (m)
+DIA_INJ3 = 0.0015             # diameter of tertiary injector orifices (m)
 
-DIA_PORT = 0.075              #diameter of fuel port (m)
-LENGTH_PORT = 1.33            #length of fuel port (m)
-DIA_FUEL = 0.112              #Outside diameter of fuel grain (m)
+DIA_PORT = 0.075              # diameter of fuel port (m)
+LENGTH_PORT = 1.33            # length of fuel port (m)
+DIA_FUEL = 0.112              # Outside diameter of fuel grain (m)
 C_STAR_EFFICIENCY = 0.95      # Ratio between actual and theoretical characteristic velocity
 
 DIA_THROAT = 0.0432           # nozzle throat diameter (m)
 NOZZLE_EFFICIENCY = 0.97      # factor by which to reduce thrust coefficient
 NOZZLE_AREA_RATIO = 4.5       # ratio of nozzle exit area to throat area
 
-DIA_FEED = 0.02               #feed pipe diameter (m)
-LENGTH_FEED = 0.5             #feed pipe length (m)
+DIA_FEED = 0.02               # feed pipe diameter (m)
+LENGTH_FEED = 0.5             # feed pipe length (m)
 VALVE_MODEL_TYPE = 'ball'     # either 'kv' or 'ball' (models as thick orifice)
 KV_VALVE = 5                  # used if VALVE_MODEL_TRY='kv'
 DIA_VALVE = 0.015             # used if VALVE_MODEL_TRY='ball'
 LENGTH_VALVE = 0.08           # used if VALVE_MODEL_TRY='ball'
 
-DENSITY_FUEL = 935            #solid fuel density (kg m^-3)
-REG_COEFF = 1.157E-4	      #regression rate coefficient (usually 'a' in textbooks)
-REG_EXP = 0.331		      #regression rate exponent (usually 'n' in textbooks)
+DENSITY_FUEL = 935            # solid fuel density (kg m^-3)
+REG_COEFF = 1.157E-4	      # regression rate coefficient (usually 'a' in textbooks)
+REG_EXP = 0.331		          # regression rate exponent (usually 'n' in textbooks)
 
-PRES_EXTERNAL = 101325        #external atmospheric pressure at test site (Pa)
-temp = 20+273.15              #initial tank temperature (K)
+PRES_EXTERNAL = 101325        # external atmospheric pressure at test site (Pa)
+temp = 20+273.15              # initial tank temperature (K)
 
 
 ###############################################################################
 # Initialize simulation
 ###############################################################################
 
-STEP = 0.01 # time step (s)
+if 'dracula' in plt.style.available:
+    plt.style.use('dracula')
+
+
+STEP = 1e-3  # time step (s)
 
 #open propep data file
-propep_file = open('L_Nitrous_S_HDPE.propep', 'r')
+propep_file = open('data/L_Nitrous_S_HDPE.propep', 'r')
 propep_data = propep_file.readlines()
 
 #open compressibility_data csv file
-with open('n2o_compressibility_factors.csv') as csvfile:
+with open('data/n2o_compressibility_factors.csv') as csvfile:
     compressibility_data = csv.reader(csvfile)
     pdat, zdat = motor.compressibility_read(compressibility_data)
 
@@ -153,7 +157,7 @@ while True:
     # model tank emptying
 
     if blowdown_type == 'liquid':
-        #liquid phase blowdown
+        # liquid phase blowdown
 
         mdotox1 = NUM_INJ1 * motor.dyer_injector(pres_cham, DIA_INJ1, lden, inj_pdrop,
                                                  hl, manifold_pres, vap_pres)
@@ -161,47 +165,47 @@ while True:
                                                  hl, manifold_pres, vap_pres)
         mdotox3 = NUM_INJ3 * motor.dyer_injector(pres_cham, DIA_INJ3, lden, inj_pdrop,
                                                  hl, manifold_pres, vap_pres)
-        mdotox = mdotox1 + mdotox2 + mdotox3 # sum flow from 3 types of orifice
+        mdotox = mdotox1 + mdotox2 + mdotox3  # sum flow from 3 types of orifice
 
-        tmass = tmass-(mdotox*STEP) # find new mass of tank contents after outflow
+        tmass = tmass-(mdotox*STEP)  # find new mass of tank contents after outflow
 
-        lmass_pre_vap = lmass-(mdotox*STEP) # liquid mass prior to vaporization
-        lmass_post_vap = ((VOL_TANK-(tmass/vden))/((1/lden)-(1/vden))) #lmass post vaporization
+        lmass_pre_vap = lmass-(mdotox*STEP)  # liquid mass prior to vaporization
+        lmass_post_vap = ((VOL_TANK-(tmass/vden))/((1/lden)-(1/vden)))  # lmass post vaporization
 
-        if lmass_pre_vap < lmass_post_vap: # check for liquid depletion
+        if lmass_pre_vap < lmass_post_vap:  # check for liquid depletion
             print('starting vapour blowdown, vapour mass is', vmass+lmass, 'kg')
             print('injector pressure drop at liquid depletion was',
                   (inj_pdrop/pres_cham)*100, '%')
             blowdown_type = 'vapour'
             lmass = 0
             vmass = tmass
-            #define tank parameters at liquid depletion
+            # define tank parameters at liquid depletion
             vmass_ld, temp_ld, vden_ld, vap_pres_ld = vmass, temp, vden, vap_pres
             Z_ld = np.interp(motor.thermophys(temp_ld)[5], pdat, zdat)
 
-        else: # continue with liquid blowdown stage
+        else:  # continue with liquid blowdown stage
             lmass = lmass_post_vap
-            vapz = lmass_pre_vap-lmass #mass vapourized
-            #add 1st order lag of 0.15s to model vaporization time
+            vapz = lmass_pre_vap - lmass  # mass vapourized
+            # add 1st order lag of 0.15s to model vaporization time
             vapz_lag = (STEP/0.15)*(vapz-vapz_lag)+vapz_lag
             vmass = tmass-lmass
 
-            #update nitrous thermophysical properties given new temperature
+            # update nitrous thermophysical properties given new temperature
             temp = temp-((vapz_lag*hv)/(lmass*cp))
             lden, vden, hl, hg, cp, vap_pres, ldynvis = motor.thermophys(temp)
-            hv = hg-hl # spec heat of vapourization
+            hv = hg - hl  # spec heat of vapourization
 
     else:
         # vapour phase blowdown
 
-        #calculations for injector orifices
+        # calculations for injector orifices
         mdotox1 = NUM_INJ1 * motor.vapour_injector(DIA_INJ1, vden, inj_pdrop)
         mdotox2 = NUM_INJ2 * motor.vapour_injector(DIA_INJ2, vden, inj_pdrop)
         mdotox3 = NUM_INJ3 * motor.vapour_injector(DIA_INJ3, vden, inj_pdrop)
-        mdotox = mdotox1+mdotox2+mdotox3
-        vmass -= STEP*mdotox # sum flow from 3 types of orifice
+        mdotox = mdotox1 + mdotox2 + mdotox3
+        vmass -= STEP * mdotox  # sum flow from 3 types of orifice
 
-        #find current tank vapour parameters
+        # find current tank vapour parameters
         Z2 = motor.Z2_solve(temp_ld, Z_ld, vmass_ld, vmass, gamma_N2O, zdat, pdat)
         if Z2 == 'numerical instability':
             print('vapour depleted: finishing motor simulation')
@@ -272,7 +276,7 @@ while True:
     lden_data.append(lden)
     lmass_data.append(lmass)
     fuel_mass_data.append(fuel_mass)
-    
+
 
 
 ###############################################################################
@@ -296,9 +300,9 @@ print('\nPerformance results:\nInitial thrust:', thrust_data[int(0.5/STEP)],
 #plot pressures
 plt.figure(figsize=(8.5, 7))
 plt.subplot(221)
-plt.plot(time_data, vap_pres_data, 'b', label='Tank pressure')
-plt.plot(time_data, pres_cham_data, 'r', label='Chamber pressure')
-plt.plot(time_data, manifold_pres_data, 'g', label='Injector manifold pressure')
+plt.plot(time_data, vap_pres_data, 'C0', label='Tank pressure')
+plt.plot(time_data, pres_cham_data, 'C5', label='Chamber pressure')
+plt.plot(time_data, manifold_pres_data, 'C2', label='Injector manifold pressure')
 plt.ylabel('Pressure (Pa)')
 plt.ylim(0, max(vap_pres_data)*1.3)
 plt.xlabel('Time (s)')
@@ -316,7 +320,7 @@ plt.tight_layout()
 
 #plot massflux
 plt.subplot(223)
-plt.plot(time_data, gox_data, 'y')
+plt.plot(time_data, gox_data, 'C6')
 plt.xlabel('Time (s)')
 plt.ylabel('Oxidizer mass flux ($kg s^{-1} m^{-2}$)')
 plt.ylim(0, max(gox_data)*1.3)
@@ -324,7 +328,7 @@ plt.tight_layout()
 
 #plot mass of propellant
 plt.subplot(224)
-plt.plot(time_data, prop_mass_data, 'g')
+plt.plot(time_data, prop_mass_data, 'C2')
 plt.xlabel('Time (s)')
 plt.ylabel('Propellant mass (kg)')
 plt.ylim(0, max(prop_mass_data)*1.3)
@@ -335,25 +339,35 @@ plt.show()
 ###############################################################################
 # generate motor_output.csv for trajectory simulation
 ###############################################################################
-with  open("motor_out.csv", "w", newline='') as motor_file:
+with open("motor_out.csv", "w", newline='') as motor_file:
     motor_file.truncate()
     motor_write = csv.writer(motor_file)
-    motor_write.writerow(['Time', 'Propellant mass (kg)',
-                          'Chamber pressure (Pa)', 'Throat diameter (m)',
-                          'Nozzle inlet gamma', 'Nozzle efficiency',
-                          'Exit static pressure (Pa)', 'Area ratio', 
-                          'Vapour Density (kg/m^3)', 'Vapour Mass (kg)', 'Liquid Density (kg/m^3)', 'Liquid Mass (kg)', 'Solid Fuel Mass (kg)',
-                          'Solid Fuel Density (kg/m^3)', 'Solid Fuel Outer Diameter (m)', 'Solid Fuel Length (m)'])
+    motor_write.writerow(['Time',
+                          'Propellant mass (kg)',
+                          'Chamber pressure (Pa)',
+                          'Throat diameter (m)',
+                          'Nozzle inlet gamma',
+                          'Nozzle efficiency',
+                          'Exit static pressure (Pa)',
+                          'Area ratio',
+                          'Vapour Density (kg/m^3)',
+                          'Vapour Mass (kg)',
+                          'Liquid Density (kg/m^3)',
+                          'Liquid Mass (kg)',
+                          'Solid Fuel Mass (kg)',
+                          'Solid Fuel Density (kg/m^3)',
+                          'Solid Fuel Outer Diameter (m)',
+                          'Solid Fuel Length (m)'])
 
     for i in range(len(time_data)):
         motor_write.writerow([time_data[i], prop_mass_data[i], pres_cham_data[i],
                               throat_data[i], gamma_data[i],
                               nozzle_efficiency_data[i], exit_pressure_data[i],
-                              area_ratio_data[i], 
+                              area_ratio_data[i],
                               vden_data[i], vmass_data[i], lden_data[i], lmass_data[i], fuel_mass_data[i],
                               DENSITY_FUEL, DIA_FUEL, LENGTH_PORT])
 
-    motor_write.writerow([time_data[-1]+STEP, fuel_mass, pres_cham_data[-1],
+    motor_write.writerow([time_data[-1] + STEP, fuel_mass, pres_cham_data[-1],
                           throat_data[-1], gamma_data[-1],
                           nozzle_efficiency_data[-1], exit_pressure_data[-1],
                           area_ratio_data[-1],
@@ -364,30 +378,30 @@ with  open("motor_out.csv", "w", newline='') as motor_file:
 # generate a RASP motor file for RAS Aero
 ###############################################################################
 
-RASP_DIA = 160                    # motor diameter in mm
-RASP_LENGTH = 3000                # motor length in mm
-RASP_DRY = 40                     # motor dry mass in kg
+RASP_DIA = 160      # motor diameter in mm
+RASP_LENGTH = 3000  # motor length in mm
+RASP_DRY = 40       # motor dry mass in kg
 
 rasp_file = open("hybrid.eng", "w+")
 
 rasp_file.write(';\n')
 header_line = ''
-header_line += 'Pulsar'+' '
-header_line += str(RASP_DIA)+' '
-header_line += str(RASP_LENGTH)+' '
-header_line += 'P'+' '
-header_line += str(round(prop_mass_data[0], 2))+' '
-header_line += str(round((prop_mass_data[0]+RASP_DRY), 2))+' '
+header_line += 'Pulsar' + ' '
+header_line += str(RASP_DIA) + ' '
+header_line += str(RASP_LENGTH) + ' '
+header_line += 'P' + ' '
+header_line += str(round(prop_mass_data[0], 2)) + ' '
+header_line += str(round((prop_mass_data[0]+RASP_DRY), 2)) + ' '
 header_line += 'CUSF'+'\n'
 rasp_file.write(header_line)
 
 for i in range(31):
     performance_line = '   '
-    performance_line += str(round(time_data[int(i*len(time_data)/31)], 2))+' '
-    performance_line += str(round(thrust_data[int(i*len(time_data)/31)], 2))+'\n'
+    performance_line += str(round(time_data[int(i*len(time_data)/31)], 2)) + ' '
+    performance_line += str(round(thrust_data[int(i*len(time_data)/31)], 2)) + '\n'
     rasp_file.write(performance_line)
 
-performance_line = '   '+str(round((time_data[-1]), 2))+' 0.0 \n'
+performance_line = '   ' + str(round((time_data[-1]), 2)) + ' 0.0 \n'
 rasp_file.write(performance_line)
 rasp_file.write(';')
 

@@ -66,7 +66,7 @@ with open('motor_out.csv') as csvfile:
         area_ratio_data.append(float(row[7]))
 
 # open standard atmosphere data
-with open('atmosphere_data.csv') as csvfile:
+with open('data/atmosphere_data.csv') as csvfile:
     standard_atmo_data = csv.reader(csvfile)
     adat, ddat, sdat, padat = [], [], [], []
     next(standard_atmo_data)
@@ -77,7 +77,7 @@ with open('atmosphere_data.csv') as csvfile:
         padat.append(float(row[3]))
 
 # import drag coeffcient as a function of Mach data
-with open('drag_coefficient_data.csv') as csvfile:
+with open('data/drag_coefficient_data.csv') as csvfile:
     drag_coefficient_data = csv.reader(csvfile)
     machdat = []
     cddat = []
