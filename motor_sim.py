@@ -76,6 +76,9 @@ temp = 20+273.15              # initial tank temperature (K)
 
 if 'dracula' in plt.style.available:
     plt.style.use('dracula')
+else:
+    plt.style.use('seaborn-whitegrid')
+
 
 
 STEP = 1e-3  # time step (s)
