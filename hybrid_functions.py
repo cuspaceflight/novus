@@ -26,14 +26,14 @@ __copyright__ = """
 
 import numpy as np
 import scipy.optimize
+from dataclasses import dataclass
 
 
+@dataclass
 class Pipe:
     """Pipe utility."""
-
-    def __init__(self, diameter):
-        """Set pipe diameter."""
-        self.diameter = diameter
+    d: float
+    l: float = None
 
     @property
     def area(self):
@@ -43,7 +43,7 @@ class Pipe:
 
         This is the only reason I created this class... for now
         """
-        return np.pi * self.diameter * self.diameter / 4
+        return 0.25 * np.pi * self.d * self.d
 
 
 def dyer_injector(cpres, inj_dia, lden, inj_pdrop, hl, manifold_P, vpres):
@@ -79,10 +79,10 @@ def dyer_injector(cpres, inj_dia, lden, inj_pdrop, hl, manifold_P, vpres):
     k = np.sqrt((manifold_P - cpres) / (vpres - cpres))
 
     # mass flow rate by Dyer model
-    mdot_ox = (k / (1 + k) * mdot_spi) + (1 / (1 + k) * mdot_hem)
+    mdot_ox = ((k * mdot_spi) + mdot_hem) / (1 + k)
 
     if 0 < inj_pdrop_og < 3e5:
-        mdot_ox *= (inj_pdrop_og / (3e5))
+        mdot_ox *= inj_pdrop_og / (3e5)
 
     return mdot_ox
 
@@ -93,10 +93,10 @@ def _lookup_index(cpres, OF):
     if not 1/39 <= OF <= 39:
         raise RuntimeError('OF out of propep data range!')
 
-    rounded_cpres = int(5 * round((cpres / (1e5)) / 5))
+    rounded_cpres = 5 * int(cpres / 5e5)
     cpres_line = int(765 * (((100 - rounded_cpres) / 5) - 1) + 9)
-    rounded_oxpct = (round(2 * ((OF / (1 + OF)) * 100))) / 2
-    oxpct_line = int((4 * ((97.5 - rounded_oxpct) / 0.5)) + 3)
+    rounded_oxpct = round(200 * OF / (1 + OF)) / 2
+    oxpct_line = int(8 * (97.5 - rounded_oxpct)) + 3
 
     return cpres_line + oxpct_line - 1
 
