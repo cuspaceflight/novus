@@ -25,8 +25,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import hybrid_functions as motor
 
-from dataclasses import dataclass
-
 
 ###############################################################################
 # Input parameters
@@ -74,26 +72,13 @@ PRES_EXTERNAL = 101325        # external atmospheric pressure at test site (Pa)
 temp = 20 + 273.15            # initial tank temperature (K)
 
 
-###############################################################################
-# Handy pipe class for pipe flow properties
-###############################################################################
-
-@dataclass
-class Pipe:
-    d: float         # diameter
-    l: float = None  # length
-
-    @property
-    def A(self) -> float:  # area
-        return np.pi * self.d * self.d / 4
-
 
 # Create pipes for pipe-like things
-port   = Pipe(DIA_PORT, LENGTH_PORT)
-fuel   = Pipe(DIA_FUEL)
-throat = Pipe(DIA_THROAT)
-feed   = Pipe(DIA_FEED, LENGTH_FEED)
-valve  = Pipe(DIA_VALVE, LENGTH_VALVE)
+port   = motor.Pipe(DIA_PORT, LENGTH_PORT)
+fuel   = motor.Pipe(DIA_FUEL)
+throat = motor.Pipe(DIA_THROAT)
+feed   = motor.Pipe(DIA_FEED, LENGTH_FEED)
+valve  = motor.Pipe(DIA_VALVE, LENGTH_VALVE)
 
 
 ###############################################################################
@@ -105,7 +90,7 @@ if 'dracula' in plt.style.available:
 else:
     plt.style.use('seaborn-whitegrid')
 
-dt = 1e-3  # time step (s)
+dt = 1e-2  # time step (s)
 
 #open propep data file
 propep_file = open('data/L_Nitrous_S_HDPE.propep', 'r')
@@ -188,12 +173,13 @@ while True:
 
         if VALVE_MODEL_TYPE == 'ball':
             #valve loss from full bore ball valve modelled as thick orifice
-            valve_loss = (0.5 * lden * (flow_speed**2)
+            valve_loss = (0.5 * lden * flow_speed * flow_speed
                           * motor.ball_valve_K(reynolds, feed.d, valve.d,
                                                valve.l))
 
         elif VALVE_MODEL_TYPE == 'kv':
-            valve_loss = 1.296e9 * (mdotox**2) / (lden * (KV_VALVE**2))
+            valve_loss = (1.296e9 * mdotox * mdotox /
+                          (lden * KV_VALVE * KV_VALVE))
 
         # sum pressure drops
         manifold_pres = vap_pres - entry_loss - valve_loss - vis_pdrop
@@ -287,9 +273,9 @@ while True:
             break
 
         #isentropic assumption
-        temp = temp_ld * pow((Z2 * vmass) / (Z_ld * vmass_ld), gamma_N2O-1) 
+        temp = temp_ld * pow(Z2 * vmass / (Z_ld * vmass_ld), gamma_N2O-1) 
         vap_pres = vap_pres_ld * pow(temp / temp_ld, gamma_N2O / (gamma_N2O-1))
-        vden = vden_ld*((temp/temp_ld)**(1/(gamma_N2O-1)))
+        vden = vden_ld * pow(temp / temp_ld, 1 / (gamma_N2O-1))
 
     # check for excessive mass flux
     if mdotox / port.A > 600:
@@ -297,12 +283,12 @@ while True:
         break
 
     # fuel port calculation
-    rdot = (REG_COEFF)*((mdotox/(((DIA_PORT/2)**2)*np.pi))**REG_EXP)
-    mdotfuel = rdot*DENSITY_FUEL*(np.pi*DIA_PORT*LENGTH_PORT)
+    rdot = REG_COEFF * pow(mdotox/port.A, REG_EXP)
+    mdotfuel = rdot * DENSITY_FUEL * np.pi * port.d * port.l
 
-    DIA_PORT += 2*rdot*dt
+    port.d += 2*rdot*dt
 
-    if DIA_PORT > DIA_FUEL: #check for depleted fuel grain
+    if port.d > fuel.d: #check for depleted fuel grain
         print("fuel depleted")
         break
 
@@ -323,7 +309,7 @@ while True:
     # performance calculations
     # find nozzle exit static pressure
     mach_exit = motor.mach_exit(gamma, NOZZLE_AREA_RATIO)
-    pres_exit = pres_cham * pow(1 + (gamma - 1) * mach_exit**2 / 2,
+    pres_exit = pres_cham * pow(1 + (gamma - 1) * mach_exit * mach_exit * 0.5,
                                 -gamma / (gamma - 1))
 
 
@@ -470,8 +456,8 @@ with open("hybrid.eng", "w+") as rasp_file:
 
     rasp_file.write(';\n')
     rasp_file.write(f'Pulsar {RASP_DIA} {RASP_LENGTH} P'
-            f' {prop_mass_data[0]:.2f}'
-            f' {prop_mass_data[0] + RASP_DRY:.2f} CUSF\n')
+                    f' {prop_mass_data[0]:.2f}'
+                    f' {prop_mass_data[0] + RASP_DRY:.2f} CUSF\n')
     
     for i in range(31):
         t = int(i * len(time_data) / 31)

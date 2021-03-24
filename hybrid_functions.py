@@ -32,11 +32,11 @@ from dataclasses import dataclass
 @dataclass
 class Pipe:
     """Pipe utility."""
-    d: float
-    l: float = None
+    d: float         # diameter
+    l: float = None  # length
 
     @property
-    def area(self):
+    def A(self) -> float:
         """Calculate pipe cross-sectional area.
 
         A = pi d^2 / 4
@@ -66,10 +66,10 @@ def dyer_injector(cpres, inj_dia, lden, inj_pdrop, hl, manifold_P, vpres):
     # single-phase incompressible mass flow rate:
     Cd = 0.6  # Waxman et al, adapted for square edged orifices
 
-    mdot_spi = Cd * injector.area * np.sqrt(2 * lden * inj_pdrop)
+    mdot_spi = Cd * injector.A * np.sqrt(2 * lden * inj_pdrop)
 
     # mass flow rate by homogenous equilibrium model:
-    mdot_hem = Cd * injector.area * rho2 * np.sqrt(2 * (h2 - hl))
+    mdot_hem = Cd * injector.A * rho2 * np.sqrt(2 * (h2 - hl))
 
     if vpres < cpres:
         raise RuntimeError("injector pdrop lower than vapour pressure",
@@ -93,10 +93,12 @@ def _lookup_index(cpres, OF):
     if not 1/39 <= OF <= 39:
         raise RuntimeError('OF out of propep data range!')
 
-    rounded_cpres = 5 * int(cpres / 5e5)
-    cpres_line = int(765 * (((100 - rounded_cpres) / 5) - 1) + 9)
-    rounded_oxpct = round(200 * OF / (1 + OF)) / 2
-    oxpct_line = int(8 * (97.5 - rounded_oxpct)) + 3
+    # these are ugle but just leave them as is
+    # Henry Franks tried to change these and broke everything, 24/3/21
+    rounded_cpres = int(5*round((cpres/(10**5))/5))                             
+    cpres_line = int(765*(((100-rounded_cpres)/5)-1)+9)                         
+    rounded_oxpct = (round(2*((OF/(1+OF))*100)))/2                              
+    oxpct_line = int((4*((97.5-rounded_oxpct)/0.5))+3) 
 
     return cpres_line + oxpct_line - 1
 
@@ -156,7 +158,7 @@ def ball_valve_K(Re, d1, d2, L):
     if Re < 2500:
         K = (2.72 + rd_2 * (120/Re - 1)) * (1 - rd_2) * (rd_2*rd_2 - 1)
     else:
-        K = (2.72 + rd_2 * 4000/Re) * (1 - rd_2) * (rd_2*rd_2 - 1)
+        K = (2.72 + rd_2 * 4000/Re) * (1 - rd_2) * ((1 / rd_2 / rd_2) - 1)
 
     K *= 0.584 + 0.0936 / (pow(L / d2, 1.5) + 0.225)
 
@@ -273,4 +275,5 @@ def mach_exit(gamma, NOZZLE_AREA_RATIO):
         ) / NOZZLE_AREA_RATIO
         return abs(m - m_new)
 
-    return scipy.optimize.minimize(mach_error, 4, tol=1e-9, method='Powell').x
+    return float(
+            scipy.optimize.minimize(mach_error, 4, tol=1e-9, method='Powell').x)
