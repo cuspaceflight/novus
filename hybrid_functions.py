@@ -1,4 +1,7 @@
-"""Contains additional functions used by motor_sim.py"""
+"""Contains additional functions used by motor_sim.py
+Reference 1 - "Engineering Model to Calculate Mass Flow Rate of a Two-Phase
+Saturated Fluid Through An Injector Orifice", Brian J Solomon
+"""
 
 ########################################
 # Joe Hunt updated 20/06/19            #
@@ -64,11 +67,13 @@ def dyer_injector(cpres, inj_dia, lden, inj_pdrop, hl, manifold_P, vpres):
     h2, rho2 = chamber_vap(cpres)
 
     # single-phase incompressible mass flow rate:
+    # See Ref 1, page 8, Eqn 2.13
     Cd = 0.6  # Waxman et al, adapted for square edged orifices
 
     mdot_spi = Cd * injector.A * np.sqrt(2 * lden * inj_pdrop)
 
     # mass flow rate by homogenous equilibrium model:
+    # See Ref 1, page 9, Eqn 2.14
     mdot_hem = Cd * injector.A * rho2 * np.sqrt(2 * (h2 - hl))
 
     if vpres < cpres:
@@ -76,9 +81,11 @@ def dyer_injector(cpres, inj_dia, lden, inj_pdrop, hl, manifold_P, vpres):
                            "2-phase Dyer model no longer applies!")
     # non-equilibrium parameter k (∝ ratio of bubble growth
     #                              time and liquid residence time)
+    # See Ref 1, page 9, Eqn 2.17
     k = np.sqrt((manifold_P - cpres) / (vpres - cpres))
 
     # mass flow rate by Dyer model
+    # See Ref 1, page 11, Eqn 2.21
     mdot_ox = ((k * mdot_spi) + mdot_hem) / (1 + k)
 
     if 0 < inj_pdrop_og < 3e5:
